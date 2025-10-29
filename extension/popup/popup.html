@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>fjord buzz extension</title>
+</head>
+<link rel="stylesheet" href="popup.css" type="text/css">
+
+<body>
+    <div class="loader">
+    </div>
+    <div id="login-status">
+    </div>
+    <div id="status-message">
+    </div>
+    <div class="content">
+        <div class="login">
+            <div id="to-login">
+                <a href="http://localhost:3000/login" target="_blank">ログイン</a>
+            </div>
+        </div>
+        <div class="main">
+            <form id="upsert-form">
+                <p>
+                    <label for="title">title:</label>
+                    <input type="text" id="title" name="title"/>
+                </p>
+                <p>
+                    <label for="url">url</label>
+                    <input type="text" id="url" name="url" readonly />
+                </p>
+                <p>
+                    <label for="published_at">published_at</label>
+                    <input type="date" id="published_at" name="published_at"/>
+                </p>
+                <p>
+                    <label for="memo">memo</label>
+                    <textarea id="memo" name="memo"></textarea>
+                </p>
+                <input type="submit" value="Submit" />
+            </form>
+        </div>
+    </div>
+</body>
+<script src="popup.js"></script>
+
+</html>
