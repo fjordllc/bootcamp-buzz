@@ -35,6 +35,14 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, (tabs) => {
+    if (chrome.runtime.lastError) {
+      console.error('タブ情報の取得に失敗しました', chrome.runtime.lastError);
+      return;
+    }
+    if (!tabs || tabs.length === 0) {
+      console.error('アクティブなタブが見つかりません');
+      return;
+    }
     const urlField = document.getElementById('url');
     urlField.value = tabs[0].url
   })
@@ -43,14 +51,12 @@ document.addEventListener('DOMContentLoaded', function() {
     e.preventDefault();
 
     if (!titleField.value.trim()) {
-      e.preventDefault();
       console.log('title empty')
       showMessage('titleを入力してください', 'message-error');
       return
     }
 
     if (!publishedAtField.value) {
-      e.preventDefault();
       console.log('date empty')
       showMessage('日付を選択してください', 'message-error');
       return;
@@ -60,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function showMessage(text, type) {
     const statusMessage = document.getElementById('status-message');
-    statusMessage.classList.remove();
+    statusMessage.classList.remove('message-success', 'message-error', 'message-info', 'message-warning');
     statusMessage.classList.add(type);
     statusMessage.textContent = text;
 
