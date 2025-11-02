@@ -64,6 +64,12 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Form submitted!');
   });
 
+  document.getElementById('delete-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    console.log('Delete clicked!')
+  });
+
+
   function showMessage(text, type) {
     const statusMessage = document.getElementById('status-message');
     statusMessage.classList.remove('message-success', 'message-error', 'message-info', 'message-warning');
