@@ -11,9 +11,8 @@
   "host_permissions": ["http://localhost:3000/*"],
   "action": {
     "default_icon": {
-      "16": "icons/icon_gray16.png",
-      "48": "icons/icon_gray48.png",
-      "128": "icons/icon_gray128.png"
+      "16": "icons/buzz_icon16.png",
+      "48": "icons/buzz_icon48.png"
     },
     "default_title": "fjord-buzz-extension",
     "default_popup": "popup/popup.html"
