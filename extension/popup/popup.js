@@ -1,3 +1,5 @@
+import { CONFIG } from '../config.js';
+
 document.addEventListener('DOMContentLoaded', async () => {
   const loader = document.querySelector('.loader')
   const loginDiv = document.querySelector('.login')
@@ -22,6 +24,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   mainDiv.style.display = 'none'
   infoDiv.style.display = 'none'
 
+  // ログイン判定のエンドポイント追加後に動作確認予定
+  // const loginLink = document.getElementById('login-link');
+  // if (loginLink) {
+  //   loginLink.href = `${CONFIG.BASE_URL}/login`;
+  // }
+
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
 
   if (!tab.url.startsWith('http')) {
@@ -42,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function ensureCookies() {
     try {
       const cookie = await chrome.cookies.get({
-        url: 'http://localhost:3000',
+        url: `${CONFIG.BASE_URL}`,
         name: '_bootcamp_session'
       })
       return cookie

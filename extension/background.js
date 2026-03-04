@@ -1,3 +1,5 @@
+import { CONFIG } from './config.js';
+
 // Buzzが登録済みかを判定(1): tabを切り替えたとき
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const tab = await chrome.tabs.get(activeInfo.tabId)
@@ -53,7 +55,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function fetchBuzz(url) {
   try {
-    const response = await fetch(`http://localhost:3000/api/buzz?url=${url}`, {
+    const response = await fetch(`${CONFIG.BASE_URL}/api/buzz?url=${url}`, {
       credentials: 'include'
     })
     if (!response.ok && response.status !== 404) {
@@ -79,7 +81,7 @@ async function fetchBuzz(url) {
 
 async function saveBuzz(buzz) {
   try {
-    const response = await fetch('http://localhost:3000/api/buzz', {
+    const response = await fetch(`${CONFIG.BASE_URL}/api/buzz`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -96,7 +98,7 @@ async function saveBuzz(buzz) {
 
 async function deleteBuzz(url) {
   try {
-    const response = await fetch(`http://localhost:3000/api/buzz?url=${url}`, {
+    const response = await fetch(`${CONFIG.BASE_URL}/api/buzz?url=${encodeURIComponent(url)}`, {
       method: 'DELETE',
       credentials: 'include'
     })
