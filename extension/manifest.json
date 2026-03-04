@@ -8,13 +8,23 @@
   "description": "Google extension for fjord buzz page",
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
-  "permissions": ["cookies", "tabs"],
-  "host_permissions": ["http://localhost:3000/*"],
+  "permissions": [
+    "cookies",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://localhost:3000/*"
+  ],
   "action": {
     "default_icon": {
       "16": "icons/buzz_icon16.png"
