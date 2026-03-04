@@ -45,7 +45,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   showMainContent()
 
-  const metadata = await extractMetadata(tabId)
+  let metadata = { title: '', published_at: '' }
+  try {
+    metadata = await extractMetadata(tabId)
+  } catch (error) {
+    console.warn('メタデータの取得に失敗しました', error)
+  }
 
   async function ensureCookies() {
     try {
