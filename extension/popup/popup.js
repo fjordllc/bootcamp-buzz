@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const response = await saveBuzz(buzz)
         if (response.status === 201) {
           showMessage('Buzzを登録しました', 'message-success')
-          setIcon(response.status)
+          await setIcon(response.status)
         } else if (response.status === 200) {
           showMessage('Buzzを更新しました', 'message-success')
         } else {
