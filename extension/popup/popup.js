@@ -4,17 +4,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const loader = document.querySelector('.loader')
   const loginDiv = document.querySelector('.login')
   const mainDiv = document.querySelector('.main')
-  const infoDiv = document.querySelector('.info')
   const titleField = document.getElementById('title')
   const publishedAtField = document.getElementById('published_at')
   const memoField = document.getElementById('memo')
   const urlField = document.getElementById('url')
   const activeTab = await getActiveTab()
   const tabId = activeTab.id
-  const url = activeTab.url
-  urlField.value = url
 
-  if (!loader || !loginDiv || !mainDiv || !infoDiv) {
+  if (!loader || !loginDiv || !mainDiv) {
     console.error('popup ui elements not found')
     return
   }
@@ -22,7 +19,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   loader.classList.add('hidden')
   loginDiv.style.display = 'none'
   mainDiv.style.display = 'none'
-  infoDiv.style.display = 'none'
 
   const loginLink = document.getElementById('to-login');
   if (loginLink) {
@@ -36,6 +32,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   showMainContent()
+
+  const url = activeTab.url || ''
+  if (!url || !url.startsWith('http')) {
+    showMessage('urlがありません', 'message-warning')
+    return
+  }
+  urlField.value = url
 
   let metadata = { title: '', published_at: '' }
   try {
@@ -64,10 +67,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function showLoginPrompt() {
     loginDiv.style.display = 'block'
-  }
-
-  function showInfo() {
-    infoDiv.style.display = 'block'
   }
 
   try {
