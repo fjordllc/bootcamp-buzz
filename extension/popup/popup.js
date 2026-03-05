@@ -21,9 +21,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   mainDiv.style.display = 'none'
 
   const loginLink = document.getElementById('to-login');
-  if (loginLink) {
-    loginLink.href = `${CONFIG.BASE_URL}/login`;
+  if (!loginLink) {
+    console.error('login link not found')
+    return
   }
+  loginLink.href = `${CONFIG.BASE_URL}/login`;
 
   const cookie = await ensureCookies()
   if (!cookie) {
@@ -88,67 +90,70 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error(`unknown error: url: ${url}`, error)
   }
 
-  document
-    .getElementById('upsert-form')
-    .addEventListener('submit', async (e) => {
-      e.preventDefault()
+  const upsertForm = document.getElementById('upsert-form')
+  const deleteLink = document.getElementById('delete-link')
+  if (!upsertForm || !deleteLink) {
+    console.error('form elements not found')
+    return
+  }
 
-      if (!titleField.value.trim() && !publishedAtField.value.trim()) {
-        showMessage('titleとpublished_atを入力してください', 'message-warning')
-        return
-      } else if (!titleField.value.trim()) {
-        showMessage('titleを入力してください', 'message-warning')
-        return
-      } else if (!publishedAtField.value.trim()) {
-        showMessage('published_atを入力してください', 'message-warning')
-        return
-      }
+  upsertForm.addEventListener('submit', async (e) => {
+    e.preventDefault()
 
-      const buzz = {
-        title: titleField.value,
-        published_at: publishedAtField.value,
-        memo: memoField.value,
-        url: urlField.value
-      }
+    if (!titleField.value.trim() && !publishedAtField.value.trim()) {
+      showMessage('titleとpublished_atを入力してください', 'message-warning')
+      return
+    } else if (!titleField.value.trim()) {
+      showMessage('titleを入力してください', 'message-warning')
+      return
+    } else if (!publishedAtField.value.trim()) {
+      showMessage('published_atを入力してください', 'message-warning')
+      return
+    }
 
-      try {
-        const response = await saveBuzz(buzz)
-        if (response.status === 201) {
-          showMessage('Buzzを登録しました', 'message-success')
-          await setIcon(response.status)
-        } else if (response.status === 200) {
-          showMessage('Buzzを更新しました', 'message-success')
-        } else {
-          throw new Error(response.status || response.error)
-        }
-      } catch (error) {
-        console.error(`unknown error: buzz: ${JSON.stringify(buzz)}`, error)
-        showMessage('Buzzの保存に失敗しました', 'message-error')
-      }
-    })
+    const buzz = {
+      title: titleField.value,
+      published_at: publishedAtField.value,
+      memo: memoField.value,
+      url: urlField.value
+    }
 
-  document
-    .getElementById('delete-link')
-    .addEventListener('click', async (e) => {
-      e.preventDefault()
-      try {
-        const response = await deleteBuzz(url)
-        if (response.status === 200) {
-          showMessage('Buzzを削除しました', 'message-success')
-          titleField.value = metadata.title
-          publishedAtField.value = metadata.published_at || ''
-          memoField.value = ''
-          await setIcon(response.status)
-        } else if (response.status === 404) {
-          showMessage('Buzzが見つかりません', 'message-error')
-        } else {
-          throw new Error(response.status || response.error)
-        }
-      } catch (error) {
-        console.error(`unknown error: url: ${url}`, error)
-        showMessage('Buzzが削除できません', 'message-error')
+    try {
+      const response = await saveBuzz(buzz)
+      if (response.status === 201) {
+        showMessage('Buzzを登録しました', 'message-success')
+        await setIcon(response.status)
+      } else if (response.status === 200) {
+        showMessage('Buzzを更新しました', 'message-success')
+      } else {
+        throw new Error(response.status || response.error)
       }
-    })
+    } catch (error) {
+      console.error(`unknown error: buzz: ${JSON.stringify(buzz)}`, error)
+      showMessage('Buzzの保存に失敗しました', 'message-error')
+    }
+  })
+
+  deleteLink.addEventListener('click', async (e) => {
+    e.preventDefault()
+    try {
+      const response = await deleteBuzz(url)
+      if (response.status === 200) {
+        showMessage('Buzzを削除しました', 'message-success')
+        titleField.value = metadata.title
+        publishedAtField.value = metadata.published_at || ''
+        memoField.value = ''
+        await setIcon(response.status)
+      } else if (response.status === 404) {
+        showMessage('Buzzが見つかりません', 'message-error')
+      } else {
+        throw new Error(response.status || response.error)
+      }
+    } catch (error) {
+      console.error(`unknown error: url: ${url}`, error)
+      showMessage('Buzzが削除できません', 'message-error')
+    }
+  })
 
   function showMessage(text, type) {
     const statusMessage = document.getElementById('status-message')
