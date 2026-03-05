@@ -24,15 +24,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   mainDiv.style.display = 'none'
   infoDiv.style.display = 'none'
 
+  const loginLink = document.getElementById('to-login');
+  if (loginLink) {
+    loginLink.href = `${CONFIG.BASE_URL}/login`;
+  }
+
   const cookie = await ensureCookies()
   if (!cookie) {
     showLoginPrompt()
     return
-  }
-
-  const loginLink = document.getElementById('to-login');
-  if (loginLink) {
-    loginLink.href = `${CONFIG.BASE_URL}/login`;
   }
 
   showMainContent()
