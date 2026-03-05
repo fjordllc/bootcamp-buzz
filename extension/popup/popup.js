@@ -24,23 +24,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   mainDiv.style.display = 'none'
   infoDiv.style.display = 'none'
 
-  // ログイン判定のエンドポイント追加後に動作確認予定
-  // const loginLink = document.getElementById('login-link');
-  // if (loginLink) {
-  //   loginLink.href = `${CONFIG.BASE_URL}/login`;
-  // }
-
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-
-  if (!tab.url.startsWith('http')) {
-    showInfo()
-    return
-  }
-
   const cookie = await ensureCookies()
   if (!cookie) {
     showLoginPrompt()
     return
+  }
+
+  const loginLink = document.getElementById('to-login');
+  if (loginLink) {
+    loginLink.href = `${CONFIG.BASE_URL}/login`;
   }
 
   showMainContent()
@@ -49,6 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     metadata = await extractMetadata(tabId)
   } catch (error) {
+    console.log(metadata)
     console.warn('メタデータの取得に失敗しました', error)
   }
 
