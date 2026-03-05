@@ -55,7 +55,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function fetchBuzz(url) {
   try {
-    const response = await fetch(`${CONFIG.BASE_URL}/api/buzz?url=${url}`, {
+    const response = await fetch(`${CONFIG.BASE_URL}/api/buzz?url=${encodeURIComponent(url)}`, {
       credentials: 'include'
     })
     if (!response.ok && response.status !== 404) {
