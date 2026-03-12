@@ -58,9 +58,6 @@ async function fetchBuzz(url) {
     const response = await fetch(`${CONFIG.BASE_URL}/api/buzz?url=${encodeURIComponent(url)}`, {
       credentials: 'include'
     })
-    if (!response.ok && response.status !== 404) {
-      throw new Error(`HTTP error: ${response.status}`)
-    }
     if (response.status === 200) {
       const buzz = await response.json()
       return {
@@ -73,6 +70,8 @@ async function fetchBuzz(url) {
       }
     } else if (response.status === 404) {
       return { status: response.status }
+    } else {
+      throw new Error(`HTTP error: ${response.status}`)
     }
   } catch (error) {
     throw new Error(`failed to fetch buzz: ${error.message}`)
@@ -87,7 +86,7 @@ async function saveBuzz(buzz) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buzz)
     })
-    if (!response.ok) {
+    if (!response.status === 200) {
       throw new Error(`HTTP error: ${response.status}`)
     }
     return { status: response.status }
@@ -102,11 +101,10 @@ async function deleteBuzz(url) {
       method: 'DELETE',
       credentials: 'include'
     })
-    if (!response.ok && response.status !== 404) {
-      throw new Error(`HTTP error: ${response.status}`)
-    }
     if (response.status === 200 || response.status === 404) {
       return { status: response.status }
+    } else {
+      throw new Error(`HTTP error: ${response.status}`)
     }
   } catch (error) {
     throw new Error(`failed to delete buzz: ${error.message}`)
