@@ -193,13 +193,17 @@ async function getActiveTab() {
 
 async function extractMetadata(tabId) {
   try {
-    const response = await chrome.tabs.sendMessage(tabId, {
-      action: 'extractMetadata'
-    })
-    if (!response) {
-      throw new Error('メタデータが取得できません')
-    }
-    return { title: response.title, published_at: response.published_at }
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      func: () => {
+        return {
+          title: document.title,
+          published_at: document.querySelector('meta[property="article:published_time"]')?.getAttribute('content')?.slice(0, 10) || ""
+        };
+      }
+    });
+    const metadata = results[0].result;
+    return { title: metadata.title, published_at: metadata.published_at }
   } catch (error) {
     throw new Error(`chrome api error: ${error.message}`)
   }

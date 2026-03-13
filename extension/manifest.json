@@ -7,21 +7,11 @@
     "type": "module"
   },
   "description": "Google extension for fjord buzz page",
-  "content_scripts": [
-    {
-      "matches": [
-        "http://*/*",
-        "https://*/*"
-      ],
-      "js": [
-        "content.js"
-      ],
-      "run_at": "document_idle"
-    }
-  ],
   "permissions": [
     "cookies",
-    "tabs"
+    "tabs",
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
     "http://localhost:3000/*",
