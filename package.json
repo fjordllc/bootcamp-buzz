@@ -1,0 +1,28 @@
+{
+  "name": "bootcamp-buzz",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/fjordllc/bootcamp-buzz#readme",
+  "bugs": {
+    "url": "https://github.com/fjordllc/bootcamp-buzz/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fjordllc/bootcamp-buzz.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "fix": "prettier --write . && eslint --fix .",
+    "lint": "prettier --check . && eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.5.0",
+    "prettier": "3.6.2"
+  }
+}

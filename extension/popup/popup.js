@@ -1,84 +1,266 @@
-document.addEventListener('DOMContentLoaded', function() {
+import { CONFIG } from '../config.js';
+
+document.addEventListener('DOMContentLoaded', async () => {
   const loader = document.querySelector('.loader')
   const loginDiv = document.querySelector('.login')
   const mainDiv = document.querySelector('.main')
   const titleField = document.getElementById('title')
   const publishedAtField = document.getElementById('published_at')
+  const memoField = document.getElementById('memo')
+  const urlField = document.getElementById('url')
+  const activeTab = await getActiveTab()
+  const tabId = activeTab.id
 
   if (!loader || !loginDiv || !mainDiv) {
-    console.error("要素が見つかりません");
+    console.error('popup ui elements not found')
     return
   }
 
-  loader.classList.add('hidden');
-  loginDiv.style.display = 'none';
-  mainDiv.style.display = 'none';
+  loader.classList.add('hidden')
+  loginDiv.style.display = 'none'
+  mainDiv.style.display = 'none'
 
-  chrome.cookies.get({
-    url: "http://localhost:3000",
-    name: "_bootcamp_session"
-  }, (cookie) => {
-    if (cookie) {
-      console.log(cookie)
-      showMainContent();
-    } else {
-      showLoginPrompt();
+  const loginLink = document.getElementById('to-login');
+  if (!loginLink) {
+    console.error('login link not found')
+    return
+  }
+  loginLink.href = `${CONFIG.BASE_URL}/login`;
+
+  const cookie = await ensureCookies()
+  if (!cookie) {
+    showLoginPrompt()
+    return
+  }
+
+  showMainContent()
+
+  const url = activeTab.url || ''
+  if (!url || !url.startsWith('http')) {
+    showMessage('urlがありません', 'message-warning')
+    return
+  }
+  urlField.value = url
+
+  let metadata = { title: '', published_at: '' }
+  try {
+    metadata = await extractMetadata(tabId)
+  } catch (error) {
+    console.log(metadata)
+    console.warn('メタデータの取得に失敗しました', error)
+  }
+
+  async function ensureCookies() {
+    try {
+      const cookie = await chrome.cookies.get({
+        url: `${CONFIG.BASE_URL}`,
+        name: '_bootcamp_session'
+      })
+      return cookie
+    } catch (error) {
+      console.error('failed to get cookie:', error)
+      showLoginPrompt()
     }
-  });
+  }
 
   function showMainContent() {
-    mainDiv.style.display = 'block';
-  };
+    mainDiv.style.display = 'block'
+  }
 
   function showLoginPrompt() {
-    loginDiv.style.display = 'block';
-  };
+    loginDiv.style.display = 'block'
+  }
 
-  chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, (tabs) => {
-    if (chrome.runtime.lastError) {
-      console.error('タブ情報の取得に失敗しました', chrome.runtime.lastError);
-      return;
+  try {
+    const response = await lookupBuzz(url)
+    if (response.status === 200) {
+      titleField.value = response.buzz.title
+      publishedAtField.value = response.buzz.published_at || ''
+      memoField.value = response.buzz.memo || ''
+      showMessage('既に登録済みです', 'message-success')
+    } else if (response.status === 404) {
+      titleField.value = metadata.title
+      publishedAtField.value = metadata.published_at || ''
+      showMessage('未登録のBuzzです', 'message-success')
+    } else {
+      throw new Error(response.status || response.error)
     }
-    if (!tabs || tabs.length === 0) {
-      console.error('アクティブなタブが見つかりません');
-      return;
-    }
-    const urlField = document.getElementById('url');
-    urlField.value = tabs[0].url
-  })
+  } catch (error) {
+    showMessage('予期せぬエラーが発生しました', 'message-error')
+    console.error(`unknown error: url: ${url}`, error)
+  }
 
-  document.getElementById('upsert-form').addEventListener('submit', (e) => {
-    e.preventDefault();
+  const upsertForm = document.getElementById('upsert-form')
+  const deleteLink = document.getElementById('delete-link')
+  if (!upsertForm || !deleteLink) {
+    console.error('form elements not found')
+    return
+  }
 
-    if (!titleField.value.trim()) {
-      console.log('title empty')
-      showMessage('titleを入力してください', 'message-error');
+  upsertForm.addEventListener('submit', async (e) => {
+    e.preventDefault()
+
+    if (!titleField.value.trim() && !publishedAtField.value.trim()) {
+      showMessage('titleとpublished_atを入力してください', 'message-warning')
+      return
+    } else if (!titleField.value.trim()) {
+      showMessage('titleを入力してください', 'message-warning')
+      return
+    } else if (!publishedAtField.value.trim()) {
+      showMessage('published_atを入力してください', 'message-warning')
       return
     }
 
-    if (!publishedAtField.value) {
-      console.log('date empty')
-      showMessage('日付を選択してください', 'message-error');
-      return;
+    const buzz = {
+      title: titleField.value,
+      published_at: publishedAtField.value,
+      memo: memoField.value,
+      url: urlField.value
     }
-    console.log('Form submitted!');
-  });
 
-  document.getElementById('delete-link').addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('Delete clicked!')
-  });
+    try {
+      const response = await saveBuzz(buzz)
+      if (response.status === 201) {
+        showMessage('Buzzを登録しました', 'message-success')
+        await setIcon(response.status)
+      } else if (response.status === 200) {
+        showMessage('Buzzを更新しました', 'message-success')
+      } else {
+        throw new Error(response.status || response.error)
+      }
+    } catch (error) {
+      console.error(`unknown error: buzz: ${JSON.stringify(buzz)}`, error)
+      showMessage('Buzzの保存に失敗しました', 'message-error')
+    }
+  })
 
+  deleteLink.addEventListener('click', async (e) => {
+    e.preventDefault()
+    try {
+      const response = await deleteBuzz(url)
+      if (response.status === 200) {
+        showMessage('Buzzを削除しました', 'message-success')
+        titleField.value = metadata.title
+        publishedAtField.value = metadata.published_at || ''
+        memoField.value = ''
+        await setIcon(response.status)
+      } else if (response.status === 404) {
+        showMessage('Buzzが見つかりません', 'message-error')
+      } else {
+        throw new Error(response.status || response.error)
+      }
+    } catch (error) {
+      console.error(`unknown error: url: ${url}`, error)
+      showMessage('Buzzが削除できません', 'message-error')
+    }
+  })
 
   function showMessage(text, type) {
-    const statusMessage = document.getElementById('status-message');
-    statusMessage.classList.remove('message-success', 'message-error', 'message-info', 'message-warning');
-    statusMessage.classList.add(type);
-    statusMessage.textContent = text;
+    const statusMessage = document.getElementById('status-message')
+    if (!statusMessage) {
+      console.error('status-message not found')
+      return
+    }
+
+    statusMessage.classList.remove(
+      'message-success',
+      'message-error',
+      'message-warning'
+    )
+    statusMessage.classList.add(type)
+    statusMessage.textContent = text
 
     setTimeout(() => {
-      statusMessage.textContent = "";
-    }, 3000);
+      statusMessage.textContent = ''
+    }, 3000)
   }
-});
+})
 
+async function getActiveTab() {
+  try {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      lastFocusedWindow: true
+    })
+    if (!tab) {
+      throw new Error('タブが見つかりません')
+    }
+    return { id: tab.id, url: tab.url }
+  } catch (error) {
+    throw new Error(`chrome api error: ${error.message}`)
+  }
+}
+
+async function extractMetadata(tabId) {
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      func: () => {
+        return {
+          title: document.title,
+          published_at: document.querySelector('meta[property="article:published_time"]')?.getAttribute('content')?.slice(0, 10) || ""
+        };
+      }
+    });
+    const metadata = results[0].result;
+    return { title: metadata.title, published_at: metadata.published_at }
+  } catch (error) {
+    throw new Error(`chrome api error: ${error.message}`)
+  }
+}
+
+async function lookupBuzz(url) {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'lookupBuzz',
+      url: url
+    })
+    if (!response) {
+      throw new Error('buzzが取得できません')
+    }
+    return response
+  } catch (error) {
+    throw new Error(`chrome api error: ${error.message}`)
+  }
+}
+
+async function saveBuzz(buzz) {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'saveBuzz',
+      buzz: buzz
+    })
+    if (!response) {
+      throw new Error('buzzが保存できません')
+    }
+    return response
+  } catch (error) {
+    throw new Error(`chrome api error: ${error.message}`)
+  }
+}
+
+async function deleteBuzz(url) {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'deleteBuzz',
+      url: url
+    })
+    if (!response) {
+      throw new Error('buzzが削除できません')
+    }
+    return response
+  } catch (error) {
+    throw new Error(`chrome api error: ${error.message}`)
+  }
+}
+
+async function setIcon(status) {
+  try {
+    await chrome.runtime.sendMessage({
+      action: 'setIcon',
+      status: status
+    })
+  } catch (error) {
+    throw new Error(`chrome api error: ${error.message}`)
+  }
+}

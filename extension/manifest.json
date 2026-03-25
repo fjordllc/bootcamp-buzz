@@ -2,17 +2,24 @@
   "name": "fjord-buzz-extension",
   "version": "1.0",
   "manifest_version": 3,
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
   "description": "Google extension for fjord buzz page",
   "permissions": [
-    "storage",
+    "cookies",
+    "tabs",
     "activeTab",
-    "cookies"
+    "scripting"
   ],
-  "host_permissions": ["http://localhost:3000/*"],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "https://bootcamp.fjord.jp/*"
+  ],
   "action": {
     "default_icon": {
-      "16": "icons/buzz_icon16.png",
-      "48": "icons/buzz_icon48.png"
+      "16": "icons/buzz_icon16.png"
     },
     "default_title": "fjord-buzz-extension",
     "default_popup": "popup/popup.html"
