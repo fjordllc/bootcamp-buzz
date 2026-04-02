@@ -8,7 +8,6 @@
   },
   "description": "Google extension for fjord buzz page",
   "permissions": [
-    "cookies",
     "tabs",
     "activeTab",
     "scripting"

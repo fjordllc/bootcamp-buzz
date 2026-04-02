@@ -12,6 +12,17 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 })
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'checkAuth') {
+    checkAuth()
+      .then((response) => {
+        sendResponse(response)
+      })
+      .catch((error) => {
+        sendResponse({ error: error.message })
+      })
+    return true
+  }
+
   if (message.action === 'lookupBuzz') {
     fetchBuzz(message.url)
       .then((response) => {
@@ -52,6 +63,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })
   }
 })
+
+async function checkAuth() {
+  try {
+    const response = await fetch(`${CONFIG.BASE_URL}/api/buzz/auth_status`, {
+      credentials: 'include'
+    })
+    if ([200, 401, 403].includes(response.status)) {
+      return { status: response.status }
+    } else {
+      throw new Error(`HTTP error: ${response.status}`)
+    }
+  } catch (error) {
+    throw new Error(`failed to check auth: ${error.message}`)
+  }
+}
 
 async function fetchBuzz(url) {
   try {

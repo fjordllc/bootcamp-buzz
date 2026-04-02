@@ -27,13 +27,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   loginLink.href = `${CONFIG.BASE_URL}/login`;
 
-  const cookie = await ensureCookies()
-  if (!cookie) {
-    showLoginPrompt()
-    return
+
+  function showMainContent() {
+    mainDiv.style.display = 'block'
   }
 
-  showMainContent()
+  function showLoginPrompt() {
+    loginDiv.style.display = 'block'
+  }
+
+  try {
+    const response = await checkAuth()
+    if (response.status === 200) {
+      showMainContent()
+    } else if (response.status === 401) {
+      showLoginPrompt()
+      showMessage('ログインしてください', 'message-error')
+      return
+    } else if (response.status === 403) {
+      showLoginPrompt()
+      showMessage('権限がありません', 'message-error')
+      return
+    }
+  } catch (error) {
+    showMessage('予期せぬエラーが発生しました', 'message-error')
+    console.error(`unkonwn error`, error)
+  }
 
   const url = activeTab.url || ''
   if (!url || !url.startsWith('http')) {
@@ -46,29 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     metadata = await extractMetadata(tabId)
   } catch (error) {
-    console.log(metadata)
     console.warn('メタデータの取得に失敗しました', error)
-  }
-
-  async function ensureCookies() {
-    try {
-      const cookie = await chrome.cookies.get({
-        url: `${CONFIG.BASE_URL}`,
-        name: '_bootcamp_session'
-      })
-      return cookie
-    } catch (error) {
-      console.error('failed to get cookie:', error)
-      showLoginPrompt()
-    }
-  }
-
-  function showMainContent() {
-    mainDiv.style.display = 'block'
-  }
-
-  function showLoginPrompt() {
-    loginDiv.style.display = 'block'
   }
 
   try {
@@ -204,6 +201,20 @@ async function extractMetadata(tabId) {
     });
     const metadata = results[0].result;
     return { title: metadata.title, published_at: metadata.published_at }
+  } catch (error) {
+    throw new Error(`chrome api error: ${error.message}`)
+  }
+}
+
+async function checkAuth() {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'checkAuth'
+    })
+    if (!response) {
+      throw new Error('ログイン状態が確認できません')
+    }
+    return response
   } catch (error) {
     throw new Error(`chrome api error: ${error.message}`)
   }
