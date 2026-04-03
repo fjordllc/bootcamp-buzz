@@ -48,10 +48,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       showLoginPrompt()
       showMessage('権限がありません', 'message-error')
       return
+    } else {
+      throw new Error(`unexpected response: ${JSON.stringify(response)}`)
     }
   } catch (error) {
     showMessage('予期せぬエラーが発生しました', 'message-error')
-    console.error(`unkonwn error`, error)
+    console.error(`unknown error`, error)
+    return
   }
 
   const url = activeTab.url || ''

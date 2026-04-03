@@ -112,7 +112,7 @@ async function saveBuzz(buzz) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buzz)
     })
-    if (!response.status === 200) {
+    if (response.status !== 200 && response.status !== 201) {
       throw new Error(`HTTP error: ${response.status}`)
     }
     return { status: response.status }
