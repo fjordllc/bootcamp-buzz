@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   try {
-    const response = await checkAuth()
+    const response = await fetchAuthStatus()
     if (response.status === 200) {
       showMainContent()
     } else if (response.status === 401) {
@@ -209,7 +209,7 @@ async function extractMetadata(tabId) {
   }
 }
 
-async function checkAuth() {
+async function fetchAuthStatus() {
   try {
     const response = await chrome.runtime.sendMessage({
       action: 'checkAuth'
