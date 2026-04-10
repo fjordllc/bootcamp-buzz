@@ -69,7 +69,7 @@ async function checkAuth() {
     const response = await fetch(`${CONFIG.BASE_URL}/api/buzz/auth_status`, {
       credentials: 'include'
     })
-    if ([200, 401, 403].includes(response.status)) {
+    if (response.status < 500) {
       return { status: response.status }
     } else {
       throw new Error(`HTTP error: ${response.status}`)
