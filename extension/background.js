@@ -66,7 +66,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function checkAuth() {
   try {
-    const response = await fetch(`${CONFIG.BASE_URL}/api/buzz/auth_status`, {
+    // const response = await fetch(`${CONFIG.BASE_URL}/api/buzz/auth_status`, {
+    const response = await fetch(`${CONFIG.BASE_URL}/api/auth`, {
       credentials: 'include'
     })
     if (response.status < 500) {
