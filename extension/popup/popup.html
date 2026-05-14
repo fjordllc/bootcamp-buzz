@@ -12,7 +12,17 @@
     <div id="status-message"></div>
     <div class="content">
       <div class="login">
-        <a href="#" id="to-login" target="_blank" rel="noopener noreferrer">ログイン</a>
+        <form id="login-form">
+          <p>
+            <label for="login_name">login name:</label>
+            <input type="text" id="login_name" name="login_name" />
+          </p>
+          <p>
+            <label for="password">password:</label>
+            <input type="password" id="password" name="password" />
+          </p>
+          <input type="submit" value="Submit" />
+        </form>
       </div>
       <div class="main">
         <form id="upsert-form">
@@ -35,6 +45,7 @@
           <input type="submit" value="Submit" />
         </form>
         <a href="#" id="delete-link" class="delete-link">削除</a>
+        <a href="#" id="logout-link" class="logout-link">ログアウト</a>
       </div>
     </div>
   </body>
