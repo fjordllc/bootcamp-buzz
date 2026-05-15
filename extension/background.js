@@ -75,7 +75,6 @@ async function fetchToken(login_name, password) {
       })
     })
     if (!response.ok) {
-      // throw new Error(`🔥HTTP Error: ${response.status}`)
       return { status: response.status }
     }
     const data = await response.json()
@@ -91,6 +90,9 @@ async function fetchToken(login_name, password) {
 async function fetchBuzz(url) {
   try {
     const data = await chrome.storage.local.get("jwt");
+    if (!data.jwt) {
+      return { status: 401 }
+    }
     const response = await fetch(`${CONFIG.BASE_URL}/api/buzz?url=${encodeURIComponent(url)}`, {
       headers: { 'Authorization': `Bearer ${data.jwt}` },
       credentials: 'omit'
@@ -118,6 +120,9 @@ async function fetchBuzz(url) {
 async function saveBuzz(buzz) {
   try {
     const data = await chrome.storage.local.get("jwt");
+    if (!data.jwt) {
+      return { status: 401 }
+    }
     const response = await fetch(`${CONFIG.BASE_URL}/api/buzz`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${data.jwt}`, 'Content-Type': 'application/json' },
@@ -137,6 +142,9 @@ async function saveBuzz(buzz) {
 async function deleteBuzz(url) {
   try {
     const data = await chrome.storage.local.get("jwt");
+    if (!data.jwt) {
+      return { status: 401 }
+    }
     const response = await fetch(`${CONFIG.BASE_URL}/api/buzz?url=${encodeURIComponent(url)}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${data.jwt}` },

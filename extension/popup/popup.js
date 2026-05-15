@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else if (response.status === 200) {
         showMessage('Buzzを更新しました', 'message-success')
       } else if (response.status === 401) {
-        const msg = "認証が必要です(token expired)"
+        const msg = "認証が必要です"
         backToLoginForm(msg)
       } else {
         throw new Error(response.status || response.error)
@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else if (response.status === 404) {
         showMessage('Buzzが見つかりません', 'message-error')
       } else if (response.status === 401) {
-        const msg = "認証が必要です(token expired)"
+        const msg = "認証が必要です"
         backToLoginForm(msg)
       } else {
         throw new Error(response.status || response.error)
