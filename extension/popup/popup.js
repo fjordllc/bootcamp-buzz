@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const token = result.jwt;
   if (token) {
     showMainContent()
+    initializeForm(url)
   } else {
     showLoginForm()
     const loginForm = document.getElementById('login-form')
@@ -95,8 +96,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await chrome.storage.local.remove("jwt");
     showMessage(`${msg}`, 'message-warning')
   }
-
-  initializeForm(url)
 
   async function initializeForm(url) {
     try {
