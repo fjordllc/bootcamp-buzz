@@ -1,9 +1,9 @@
-import { CONFIG } from '../config.js';
-
 document.addEventListener('DOMContentLoaded', async () => {
   const loader = document.querySelector('.loader')
   const loginDiv = document.querySelector('.login')
   const mainDiv = document.querySelector('.main')
+  const loginName = document.getElementById('login_name')
+  const password = document.getElementById('password')
   const titleField = document.getElementById('title')
   const publishedAtField = document.getElementById('published_at')
   const memoField = document.getElementById('memo')
@@ -20,21 +20,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   loginDiv.style.display = 'none'
   mainDiv.style.display = 'none'
 
-  const loginLink = document.getElementById('to-login');
-  if (!loginLink) {
-    console.error('login link not found')
-    return
-  }
-  loginLink.href = `${CONFIG.BASE_URL}/login`;
-
-  const cookie = await ensureCookies()
-  if (!cookie) {
-    showLoginPrompt()
-    return
-  }
-
-  showMainContent()
-
   const url = activeTab.url || ''
   if (!url || !url.startsWith('http')) {
     showMessage('urlがありません', 'message-warning')
@@ -42,52 +27,103 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   urlField.value = url
 
+  const result = await chrome.storage.local.get("jwt");
+  const token = result.jwt;
+  if (token) {
+    showMainContent()
+    initializeForm(url)
+  } else {
+    showLoginForm()
+    const loginForm = document.getElementById('login-form')
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault()
+
+      try {
+        const response = await fetchToken(loginName.value, password.value)
+        if (response.status === 200) {
+          await chrome.storage.local.set({ jwt: response.jwt_token })
+          hideLoginForm()
+          showMainContent()
+          initializeForm(url)
+          showMessage('ログインしました', 'message-success')
+        } else {
+          showMessage('ログインに失敗しました', 'message-warning')
+          throw new Error(response.status || response.error)
+        }
+      } catch (error) {
+        console.error(`unknown error:`, error)
+        return
+      }
+    })
+  }
+
+  const logoutLink = document.getElementById('logout-link')
+  logoutLink.addEventListener('click', async (e) => {
+    e.preventDefault()
+    await chrome.storage.local.remove("jwt");
+    showLoginForm()
+    hideMainContent()
+    showMessage('ログアウトしました', 'message-success')
+  })
+
   let metadata = { title: '', published_at: '' }
   try {
     metadata = await extractMetadata(tabId)
   } catch (error) {
-    console.log(metadata)
     console.warn('メタデータの取得に失敗しました', error)
-  }
-
-  async function ensureCookies() {
-    try {
-      const cookie = await chrome.cookies.get({
-        url: `${CONFIG.BASE_URL}`,
-        name: '_bootcamp_session'
-      })
-      return cookie
-    } catch (error) {
-      console.error('failed to get cookie:', error)
-      showLoginPrompt()
-    }
   }
 
   function showMainContent() {
     mainDiv.style.display = 'block'
   }
 
-  function showLoginPrompt() {
+  function hideMainContent() {
+    mainDiv.style.display = 'none'
+  }
+
+  function showLoginForm() {
     loginDiv.style.display = 'block'
   }
 
-  try {
-    const response = await lookupBuzz(url)
-    if (response.status === 200) {
-      titleField.value = response.buzz.title
-      publishedAtField.value = response.buzz.published_at || ''
-      memoField.value = response.buzz.memo || ''
-      showMessage('既に登録済みです', 'message-success')
-    } else if (response.status === 404) {
-      titleField.value = metadata.title
-      publishedAtField.value = metadata.published_at || ''
-      showMessage('未登録のBuzzです', 'message-success')
-    } else {
-      throw new Error(response.status || response.error)
+  function hideLoginForm() {
+    loginDiv.style.display = 'none'
+  }
+
+  async function backToLoginForm(msg) {
+    hideMainContent()
+    showLoginForm()
+    await chrome.storage.local.remove("jwt");
+    showMessage(`${msg}`, 'message-warning')
+  }
+
+  async function initializeForm(url) {
+    try {
+      const response = await lookupBuzz(url)
+
+      if (response.status === 200) {
+        titleField.value = response.buzz.title
+        publishedAtField.value = response.buzz.published_at || ''
+        memoField.value = response.buzz.memo || ''
+        showMessage('既に登録済みです', 'message-warning')
+      } else if (response.status === 404) {
+        titleField.value = metadata.title
+        publishedAtField.value = metadata.published_at || ''
+        showMessage('未登録のBuzzです', 'message-warning')
+      } else if (response.status === 401) {
+        const msg = '認証が必要です'
+        backToLoginForm(msg)
+      } else if (response.status === 403) {
+        const msg = '権限がありません'
+        backToLoginForm(msg)
+      } else {
+        throw new Error(response.status || response.error)
+      }
+
+    } catch (error) {
+      showMessage('予期せぬエラーが発生しました', 'message-error')
+      console.error(`unknown error: url: ${url}`, error)
     }
-  } catch (error) {
-    showMessage('予期せぬエラーが発生しました', 'message-error')
-    console.error(`unknown error: url: ${url}`, error)
   }
 
   const upsertForm = document.getElementById('upsert-form')
@@ -125,6 +161,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         await setIcon(response.status)
       } else if (response.status === 200) {
         showMessage('Buzzを更新しました', 'message-success')
+      } else if (response.status === 401) {
+        const msg = "認証が必要です"
+        backToLoginForm(msg)
       } else {
         throw new Error(response.status || response.error)
       }
@@ -133,6 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       showMessage('Buzzの保存に失敗しました', 'message-error')
     }
   })
+
 
   deleteLink.addEventListener('click', async (e) => {
     e.preventDefault()
@@ -146,6 +186,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         await setIcon(response.status)
       } else if (response.status === 404) {
         showMessage('Buzzが見つかりません', 'message-error')
+      } else if (response.status === 401) {
+        const msg = "認証が必要です"
+        backToLoginForm(msg)
       } else {
         throw new Error(response.status || response.error)
       }
@@ -204,6 +247,22 @@ async function extractMetadata(tabId) {
     });
     const metadata = results[0].result;
     return { title: metadata.title, published_at: metadata.published_at }
+  } catch (error) {
+    throw new Error(`chrome api error: ${error.message}`)
+  }
+}
+
+async function fetchToken(login_name, password) {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'fetchToken',
+      login_name: login_name,
+      password: password
+    })
+    if (!response) {
+      throw new Error('tokenが取得できません')
+    }
+    return response
   } catch (error) {
     throw new Error(`chrome api error: ${error.message}`)
   }

@@ -12,6 +12,17 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 })
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'fetchToken') {
+    fetchToken(message.login_name, message.password)
+      .then((response) => {
+        sendResponse(response)
+      })
+      .catch((error) => {
+        sendResponse({ error: error.message })
+      })
+    return true
+  }
+
   if (message.action === 'lookupBuzz') {
     fetchBuzz(message.url)
       .then((response) => {
@@ -53,10 +64,38 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 })
 
+async function fetchToken(login_name, password) {
+  try {
+    const response = await fetch(`${CONFIG.BASE_URL}/api/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        login_name: login_name,
+        password: password
+      })
+    })
+    if (!response.ok) {
+      return { status: response.status }
+    }
+    const data = await response.json()
+    return {
+      status: response.status,
+      jwt_token: data.token
+    }
+  } catch (error) {
+    throw new Error(`failed to fetch token: ${error.message}`)
+  }
+}
+
 async function fetchBuzz(url) {
   try {
+    const data = await chrome.storage.local.get("jwt");
+    if (!data.jwt) {
+      return { status: 401 }
+    }
     const response = await fetch(`${CONFIG.BASE_URL}/api/buzz?url=${encodeURIComponent(url)}`, {
-      credentials: 'include'
+      headers: { 'Authorization': `Bearer ${data.jwt}` },
+      credentials: 'omit'
     })
     if (response.status === 200) {
       const buzz = await response.json()
@@ -68,7 +107,7 @@ async function fetchBuzz(url) {
           memo: buzz.memo
         }
       }
-    } else if (response.status === 404) {
+    } else if (response.status === 404 || response.status === 401 || response.status === 403) {
       return { status: response.status }
     } else {
       throw new Error(`HTTP error: ${response.status}`)
@@ -80,16 +119,21 @@ async function fetchBuzz(url) {
 
 async function saveBuzz(buzz) {
   try {
+    const data = await chrome.storage.local.get("jwt");
+    if (!data.jwt) {
+      return { status: 401 }
+    }
     const response = await fetch(`${CONFIG.BASE_URL}/api/buzz`, {
       method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Authorization': `Bearer ${data.jwt}`, 'Content-Type': 'application/json' },
+      credentials: 'omit',
       body: JSON.stringify(buzz)
     })
-    if (!response.status === 200) {
+    if (response.ok || response.status === 401) {
+      return { status: response.status }
+    } else {
       throw new Error(`HTTP error: ${response.status}`)
     }
-    return { status: response.status }
   } catch (error) {
     throw new Error(`failed to save buzz: ${error.message}`)
   }
@@ -97,11 +141,16 @@ async function saveBuzz(buzz) {
 
 async function deleteBuzz(url) {
   try {
+    const data = await chrome.storage.local.get("jwt");
+    if (!data.jwt) {
+      return { status: 401 }
+    }
     const response = await fetch(`${CONFIG.BASE_URL}/api/buzz?url=${encodeURIComponent(url)}`, {
       method: 'DELETE',
-      credentials: 'include'
+      headers: { 'Authorization': `Bearer ${data.jwt}` },
+      credentials: 'omit'
     })
-    if (response.status === 200 || response.status === 404) {
+    if (response.status === 200 || response.status === 404 || response.status === 401) {
       return { status: response.status }
     } else {
       throw new Error(`HTTP error: ${response.status}`)
