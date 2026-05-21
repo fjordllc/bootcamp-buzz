@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     showLoginForm()
     hideMainContent()
     showMessage('ログアウトしました', 'message-success')
+    await setIcon('default')
   })
 
   let metadata = { title: '', published_at: '' }
@@ -106,6 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         publishedAtField.value = response.buzz.published_at || ''
         memoField.value = response.buzz.memo || ''
         showMessage('既に登録済みです', 'message-warning')
+        await setIcon('checked')
       } else if (response.status === 404) {
         titleField.value = metadata.title
         publishedAtField.value = metadata.published_at || ''
@@ -158,7 +160,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const response = await saveBuzz(buzz)
       if (response.status === 201) {
         showMessage('Buzzを登録しました', 'message-success')
-        await setIcon(response.status)
+        await setIcon('checked')
       } else if (response.status === 200) {
         showMessage('Buzzを更新しました', 'message-success')
       } else if (response.status === 401) {
@@ -173,7 +175,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   })
 
-
   deleteLink.addEventListener('click', async (e) => {
     e.preventDefault()
     try {
@@ -183,7 +184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         titleField.value = metadata.title
         publishedAtField.value = metadata.published_at || ''
         memoField.value = ''
-        await setIcon(response.status)
+        await setIcon('default')
       } else if (response.status === 404) {
         showMessage('Buzzが見つかりません', 'message-error')
       } else if (response.status === 401) {

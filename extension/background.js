@@ -57,8 +57,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === 'setIcon') {
-    const iconStatus = message.status === 201 ? 'checked' : 'default'
-    setIcon(iconStatus).catch((error) => {
+    setIcon(message.status).catch((error) => {
       console.error('Icon setting failed:', error)
     })
   }
