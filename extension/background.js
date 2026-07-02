@@ -13,7 +13,12 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
 // Buzzが登録済みかを判定(2): 同じtab内で新しい記事を開いたとき
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  await updateBuzzIcon(tab)
+  try {
+    await updateBuzzIcon(tab)
+  } catch (error) {
+    // タブが既に閉じられている場合などは無視する
+    console.debug('onUpdated skipped:', error.message)
+  }
 })
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
