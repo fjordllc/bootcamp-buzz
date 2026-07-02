@@ -1,3 +1,3 @@
 export const CONFIG = {
-  BASE_URL: "https://bootcamp.fjord.jp",
-};
+  BASE_URL: 'https://bootcamp.fjord.jp'
+}

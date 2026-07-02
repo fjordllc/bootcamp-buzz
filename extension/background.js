@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+import { CONFIG } from './config.js'
 
 // Buzzが登録済みかを判定(1): tabを切り替えたとき
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
@@ -13,7 +13,12 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
 // Buzzが登録済みかを判定(2): 同じtab内で新しい記事を開いたとき
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  await updateBuzzIcon(tab)
+  try {
+    await updateBuzzIcon(tab)
+  } catch (error) {
+    // タブが既に閉じられている場合などは無視する
+    console.debug('onUpdated skipped:', error.message)
+  }
 })
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -93,14 +98,17 @@ async function fetchToken(login_name, password) {
 
 async function fetchBuzz(url) {
   try {
-    const data = await chrome.storage.local.get("jwt");
+    const data = await chrome.storage.local.get('jwt')
     if (!data.jwt) {
       return { status: 401 }
     }
-    const response = await fetch(`${CONFIG.BASE_URL}/api/buzz?url=${encodeURIComponent(url)}`, {
-      headers: { 'Authorization': `Bearer ${data.jwt}` },
-      credentials: 'omit'
-    })
+    const response = await fetch(
+      `${CONFIG.BASE_URL}/api/buzz?url=${encodeURIComponent(url)}`,
+      {
+        headers: { Authorization: `Bearer ${data.jwt}` },
+        credentials: 'omit'
+      }
+    )
     if (response.status === 200) {
       const buzz = await response.json()
       return {
@@ -111,7 +119,11 @@ async function fetchBuzz(url) {
           memo: buzz.memo
         }
       }
-    } else if (response.status === 404 || response.status === 401 || response.status === 403) {
+    } else if (
+      response.status === 404 ||
+      response.status === 401 ||
+      response.status === 403
+    ) {
       return { status: response.status }
     } else {
       throw new Error(`HTTP error: ${response.status}`)
@@ -123,13 +135,16 @@ async function fetchBuzz(url) {
 
 async function saveBuzz(buzz) {
   try {
-    const data = await chrome.storage.local.get("jwt");
+    const data = await chrome.storage.local.get('jwt')
     if (!data.jwt) {
       return { status: 401 }
     }
     const response = await fetch(`${CONFIG.BASE_URL}/api/buzz`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${data.jwt}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${data.jwt}`,
+        'Content-Type': 'application/json'
+      },
       credentials: 'omit',
       body: JSON.stringify(buzz)
     })
@@ -145,16 +160,23 @@ async function saveBuzz(buzz) {
 
 async function deleteBuzz(url) {
   try {
-    const data = await chrome.storage.local.get("jwt");
+    const data = await chrome.storage.local.get('jwt')
     if (!data.jwt) {
       return { status: 401 }
     }
-    const response = await fetch(`${CONFIG.BASE_URL}/api/buzz?url=${encodeURIComponent(url)}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${data.jwt}` },
-      credentials: 'omit'
-    })
-    if (response.status === 200 || response.status === 404 || response.status === 401) {
+    const response = await fetch(
+      `${CONFIG.BASE_URL}/api/buzz?url=${encodeURIComponent(url)}`,
+      {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${data.jwt}` },
+        credentials: 'omit'
+      }
+    )
+    if (
+      response.status === 200 ||
+      response.status === 404 ||
+      response.status === 401
+    ) {
       return { status: response.status }
     } else {
       throw new Error(`HTTP error: ${response.status}`)

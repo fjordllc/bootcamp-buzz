@@ -27,8 +27,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   urlField.value = url
 
-  const result = await chrome.storage.local.get("jwt");
-  const token = result.jwt;
+  const result = await chrome.storage.local.get('jwt')
+  const token = result.jwt
   if (token) {
     showMainContent()
     initializeForm(url)
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const logoutLink = document.getElementById('logout-link')
   logoutLink.addEventListener('click', async (e) => {
     e.preventDefault()
-    await chrome.storage.local.remove("jwt");
+    await chrome.storage.local.remove('jwt')
     showLoginForm()
     hideMainContent()
     showMessage('ログアウトしました', 'message-success')
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function backToLoginForm(msg) {
     hideMainContent()
     showLoginForm()
-    await chrome.storage.local.remove("jwt");
+    await chrome.storage.local.remove('jwt')
     showMessage(`${msg}`, 'message-warning')
   }
 
@@ -121,7 +121,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         throw new Error(response.status || response.error)
       }
-
     } catch (error) {
       showMessage('予期せぬエラーが発生しました', 'message-error')
       console.error(`unknown error: url: ${url}`, error)
@@ -164,7 +163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else if (response.status === 200) {
         showMessage('Buzzを更新しました', 'message-success')
       } else if (response.status === 401) {
-        const msg = "認証が必要です"
+        const msg = '認証が必要です'
         backToLoginForm(msg)
       } else {
         throw new Error(response.status || response.error)
@@ -188,7 +187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else if (response.status === 404) {
         showMessage('Buzzが見つかりません', 'message-error')
       } else if (response.status === 401) {
-        const msg = "認証が必要です"
+        const msg = '認証が必要です'
         backToLoginForm(msg)
       } else {
         throw new Error(response.status || response.error)
@@ -242,11 +241,15 @@ async function extractMetadata(tabId) {
       func: () => {
         return {
           title: document.title,
-          published_at: document.querySelector('meta[property="article:published_time"]')?.getAttribute('content')?.slice(0, 10) || ""
-        };
+          published_at:
+            document
+              .querySelector('meta[property="article:published_time"]')
+              ?.getAttribute('content')
+              ?.slice(0, 10) || ''
+        }
       }
-    });
-    const metadata = results[0].result;
+    })
+    const metadata = results[0].result
     return { title: metadata.title, published_at: metadata.published_at }
   } catch (error) {
     throw new Error(`chrome api error: ${error.message}`)
