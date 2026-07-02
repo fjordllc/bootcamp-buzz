@@ -12,6 +12,14 @@
     "http://localhost:3000/*",
     "https://bootcamp.fjord.jp/*"
   ],
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["content/buzz-marker.js"],
+      "css": ["content/buzz-marker.css"],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
     "default_icon": {
       "16": "icons/buzz_icon16.png"
