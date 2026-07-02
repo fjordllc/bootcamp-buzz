@@ -66,12 +66,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true
   }
 
+  if (message.action === 'resolveUrl') {
+    resolveUrl(message.url)
+      .then((response) => {
+        sendResponse(response)
+      })
+      .catch((error) => {
+        sendResponse({ error: error.message })
+      })
+    return true
+  }
+
   if (message.action === 'setIcon') {
     setIcon(message.status).catch((error) => {
       console.error('Icon setting failed:', error)
     })
   }
 })
+
+// t.co等の短縮URLをリダイレクトを辿って最終的な実URLに展開する。
+// 認証情報は送らず、本文取得を避けるためHEADを優先する。
+async function resolveUrl(url) {
+  const fetchFinalUrl = async (method) => {
+    const response = await fetch(url, {
+      method,
+      redirect: 'follow',
+      credentials: 'omit'
+    })
+    return response.url
+  }
+  try {
+    return { url: await fetchFinalUrl('HEAD') }
+  } catch {
+    // HEAD非対応・ネットワーク都合の場合はGETで再試行する
+    try {
+      return { url: await fetchFinalUrl('GET') }
+    } catch (error) {
+      return { error: error.message }
+    }
+  }
+}
 
 async function fetchToken(login_name, password) {
   try {
