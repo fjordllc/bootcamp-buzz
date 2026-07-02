@@ -2,8 +2,13 @@ import { CONFIG } from './config.js';
 
 // Buzzが登録済みかを判定(1): tabを切り替えたとき
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  const tab = await chrome.tabs.get(activeInfo.tabId)
-  await updateBuzzIcon(tab)
+  try {
+    const tab = await chrome.tabs.get(activeInfo.tabId)
+    await updateBuzzIcon(tab)
+  } catch (error) {
+    // タブが既に閉じられている場合など(No tab with id)は無視する
+    console.debug('onActivated skipped:', error.message)
+  }
 })
 
 // Buzzが登録済みかを判定(2): 同じtab内で新しい記事を開いたとき
