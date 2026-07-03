@@ -84,26 +84,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 })
 
-// t.co等の短縮URLをリダイレクトを辿って最終的な実URLに展開する。
-// 認証情報は送らず、本文取得を避けるためHEADを優先する。
+// t.coはHTTPリダイレクト(301)ではなく、実URLを埋め込んだHTML中間ページ(200)を
+// 返す。本文から実URLを取り出す。
+function extractExpandedUrl(html) {
+  // <meta http-equiv="refresh" content="0;URL=https://...">
+  const metaMatch = html.match(
+    /http-equiv=["']?refresh["']?[^>]*?url=([^"'>\s]+)/i
+  )
+  if (metaMatch) return metaMatch[1].replace(/&amp;/g, '&')
+  // location.replace("https:\/\/...") スラッシュがエスケープされている
+  const jsMatch = html.match(/location\.replace\((["'])(.*?)\1\)/i)
+  if (jsMatch) return jsMatch[2].replace(/\\\//g, '/')
+  return null
+}
+
+function isShortenerUrl(url) {
+  try {
+    return new URL(url).hostname === 't.co'
+  } catch {
+    return false
+  }
+}
+
+// 短縮URLを実URLに展開する。認証情報は送らない。
+// 通常のHTTPリダイレクトで辿れた場合はその最終URLを、t.coのように
+// HTML中間ページを返す場合は本文から抽出した実URLを返す。
 async function resolveUrl(url) {
-  const fetchFinalUrl = async (method) => {
+  try {
     const response = await fetch(url, {
-      method,
       redirect: 'follow',
       credentials: 'omit'
     })
-    return response.url
-  }
-  try {
-    return { url: await fetchFinalUrl('HEAD') }
-  } catch {
-    // HEAD非対応・ネットワーク都合の場合はGETで再試行する
-    try {
-      return { url: await fetchFinalUrl('GET') }
-    } catch (error) {
-      return { error: error.message }
+    // HTTPリダイレクトで最終URLになっていればそれを使う(本文は読まない)
+    if (response.url && !isShortenerUrl(response.url)) {
+      return { url: response.url }
     }
+    // t.coが中間ページを返した場合は本文から実URLを取り出す
+    const html = await response.text()
+    const expanded = extractExpandedUrl(html)
+    return { url: expanded || response.url }
+  } catch (error) {
+    return { error: error.message }
   }
 }
 
