@@ -1,6 +1,6 @@
 {
   "name": "fjord-buzz-extension",
-  "version": "1.0",
+  "version": "1.6",
   "manifest_version": 3,
   "background": {
     "service_worker": "background.js",
@@ -10,7 +10,22 @@
   "permissions": ["tabs", "activeTab", "scripting", "storage"],
   "host_permissions": [
     "http://localhost:3000/*",
-    "https://bootcamp.fjord.jp/*"
+    "https://bootcamp.fjord.jp/*",
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*",
+        "https://b.hatena.ne.jp/*",
+        "https://www.google.com/search*",
+        "https://www.google.co.jp/search*"
+      ],
+      "js": ["content/buzz-marker.js"],
+      "css": ["content/buzz-marker.css"],
+      "run_at": "document_idle"
+    }
   ],
   "action": {
     "default_icon": {

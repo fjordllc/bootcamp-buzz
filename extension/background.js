@@ -66,12 +66,67 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true
   }
 
+  if (message.action === 'resolveUrl') {
+    resolveUrl(message.url)
+      .then((response) => {
+        sendResponse(response)
+      })
+      .catch((error) => {
+        sendResponse({ error: error.message })
+      })
+    return true
+  }
+
   if (message.action === 'setIcon') {
     setIcon(message.status).catch((error) => {
       console.error('Icon setting failed:', error)
     })
   }
 })
+
+// t.coはHTTPリダイレクト(301)ではなく、実URLを埋め込んだHTML中間ページ(200)を
+// 返す。本文から実URLを取り出す。
+function extractExpandedUrl(html) {
+  // <meta http-equiv="refresh" content="0;URL=https://...">
+  const metaMatch = html.match(
+    /http-equiv=["']?refresh["']?[^>]*?url=([^"'>\s]+)/i
+  )
+  if (metaMatch) return metaMatch[1].replace(/&amp;/g, '&')
+  // location.replace("https:\/\/...") スラッシュがエスケープされている
+  const jsMatch = html.match(/location\.replace\((["'])(.*?)\1\)/i)
+  if (jsMatch) return jsMatch[2].replace(/\\\//g, '/')
+  return null
+}
+
+function isShortenerUrl(url) {
+  try {
+    return new URL(url).hostname === 't.co'
+  } catch {
+    return false
+  }
+}
+
+// 短縮URLを実URLに展開する。認証情報は送らない。
+// 通常のHTTPリダイレクトで辿れた場合はその最終URLを、t.coのように
+// HTML中間ページを返す場合は本文から抽出した実URLを返す。
+async function resolveUrl(url) {
+  try {
+    const response = await fetch(url, {
+      redirect: 'follow',
+      credentials: 'omit'
+    })
+    // HTTPリダイレクトで最終URLになっていればそれを使う(本文は読まない)
+    if (response.url && !isShortenerUrl(response.url)) {
+      return { url: response.url }
+    }
+    // t.coが中間ページを返した場合は本文から実URLを取り出す
+    const html = await response.text()
+    const expanded = extractExpandedUrl(html)
+    return { url: expanded || response.url }
+  } catch (error) {
+    return { error: error.message }
+  }
+}
 
 async function fetchToken(login_name, password) {
   try {

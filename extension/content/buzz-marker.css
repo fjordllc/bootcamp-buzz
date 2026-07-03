@@ -1,0 +1,22 @@
+.buzz-registered-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: #fff;
+  background-color: #0f7a4d;
+  border-radius: 9999px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* Google検索結果はタイトルを scaleY(-1) で上下反転させ、子要素側で再反転して
+   正立させている(難読化)。その内側に差し込むバッジも反転してしまうため、
+   同じ変換で打ち消して正立させる。.V9tjod の内側でのみ効くので他サイトには影響しない。 */
+.V9tjod .buzz-registered-badge {
+  transform: scaleY(-1);
+}
