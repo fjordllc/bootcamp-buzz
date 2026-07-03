@@ -121,23 +121,48 @@ function isRegistered(url) {
 
 // --- バッジ表示 ---
 
-function hasBadge(anchor) {
-  const next = anchor.nextElementSibling
+function hasBadge(target) {
+  const next = target.nextElementSibling
   return !!next && next.classList.contains('buzz-registered-badge')
 }
 
-// リンクの直後に「✓ 登録済み」バッジを差し込む
-function addBadge(anchor) {
-  if (hasBadge(anchor)) return
+// 指定要素の直後に「✓ 登録済み」バッジを差し込む
+function addBadge(target) {
+  if (hasBadge(target)) return
   const badge = document.createElement('span')
   badge.className = 'buzz-registered-badge'
   badge.textContent = '✓ 登録済み'
-  anchor.insertAdjacentElement('afterend', badge)
+  target.insertAdjacentElement('afterend', badge)
+}
+
+// Googleの結果リンクのURL。/url?q= 経由のリダイレクトなら実URLを取り出し、
+// その他のGoogle内部リンクは対象外(null)にする。
+function googleRealUrl(href) {
+  try {
+    const parsed = new URL(href)
+    const isGoogle =
+      parsed.hostname === 'google.com' ||
+      parsed.hostname.endsWith('.google.com') ||
+      parsed.hostname === 'google.co.jp' ||
+      parsed.hostname.endsWith('.google.co.jp')
+    if (isGoogle) {
+      if (parsed.pathname === '/url') {
+        const target =
+          parsed.searchParams.get('q') || parsed.searchParams.get('url')
+        return target ? normalizeUrl(target) : null
+      }
+      return null
+    }
+    return normalizeUrl(href)
+  } catch {
+    return null
+  }
 }
 
 // --- サイト別アダプタ ---
 // linkSelector: 判定対象リンクのCSSセレクタ
 // getRealUrl(anchor): そのリンクの照合用実URL(Promise, 解決不能はnull)
+// getBadgeTarget(anchor): バッジを差し込む要素(省略時はリンク自身)
 
 const X_ADAPTER = {
   linkSelector: 'article[data-testid="tweet"] a[href^="https://t.co/"]',
@@ -152,10 +177,17 @@ const HATENA_ADAPTER = {
   getRealUrl: (anchor) => Promise.resolve(normalizeUrl(anchor.href))
 }
 
+const GOOGLE_ADAPTER = {
+  linkSelector: '#search a:has(h3)',
+  getRealUrl: (anchor) => Promise.resolve(googleRealUrl(anchor.href)),
+  getBadgeTarget: (anchor) => anchor.querySelector('h3') || anchor
+}
+
 function detectAdapter() {
   const host = location.hostname
   if (host === 'x.com' || host === 'twitter.com') return X_ADAPTER
   if (host === 'b.hatena.ne.jp') return HATENA_ADAPTER
+  if (/(^|\.)google\.(com|co\.jp)$/.test(host)) return GOOGLE_ADAPTER
   return null
 }
 
@@ -186,7 +218,12 @@ async function processLink(anchor) {
 
   // 確定結果が出てから記録する(以降このリンクでは再判定しない)
   anchor.dataset.buzzKey = key
-  if (registered) addBadge(anchor)
+  if (registered) {
+    const target = adapter.getBadgeTarget
+      ? adapter.getBadgeTarget(anchor)
+      : anchor
+    if (target) addBadge(target)
+  }
 }
 
 function scan() {
