@@ -1,6 +1,7 @@
-// X(旧Twitter)のタイムライン・検索結果で、ツイート内に含まれる外部リンク(t.co短縮リンク)が
-// 登録済みBuzzかどうかを判定し、登録済みならそのリンクの横に「✓ 登録済み」バッジを表示する content script。
-// t.coは実URLを隠すため、background 経由で短縮URLを展開してから照合する。
+// 登録済みBuzzのリンクの横に「✓ 登録済み」バッジを表示する content script。
+// 対応サイト:
+//   - X(x.com / twitter.com): ツイート内の t.co 短縮リンクを background で実URLに展開して照合
+//   - はてなブックマーク(b.hatena.ne.jp): エントリーの記事リンク(実URL)を直接照合
 
 const MAX_CONCURRENCY = 4
 
@@ -126,7 +127,7 @@ function hasBadge(anchor) {
 }
 
 // リンクの直後に「✓ 登録済み」バッジを差し込む
-function addLinkBadge(anchor) {
+function addBadge(anchor) {
   if (hasBadge(anchor)) return
   const badge = document.createElement('span')
   badge.className = 'buzz-registered-badge'
@@ -134,48 +135,74 @@ function addLinkBadge(anchor) {
   anchor.insertAdjacentElement('afterend', badge)
 }
 
+// --- サイト別アダプタ ---
+// linkSelector: 判定対象リンクのCSSセレクタ
+// getRealUrl(anchor): そのリンクの照合用実URL(Promise, 解決不能はnull)
+
+const X_ADAPTER = {
+  linkSelector: 'article[data-testid="tweet"] a[href^="https://t.co/"]',
+  getRealUrl: (anchor) => resolveShortUrl(anchor.href)
+}
+
+const HATENA_ADAPTER = {
+  linkSelector: [
+    'a.js-keyboard-openable[href^="http"]',
+    'a.entrylist-contents-title[href^="http"]'
+  ].join(', '),
+  getRealUrl: (anchor) => Promise.resolve(normalizeUrl(anchor.href))
+}
+
+function detectAdapter() {
+  const host = location.hostname
+  if (host === 'x.com' || host === 'twitter.com') return X_ADAPTER
+  if (host === 'b.hatena.ne.jp') return HATENA_ADAPTER
+  return null
+}
+
+const adapter = detectAdapter()
+
 async function processLink(anchor) {
-  const shortUrl = anchor.href
-  if (!shortUrl || !shortUrl.startsWith('https://t.co/')) return
+  const key = anchor.href
+  if (!key) return
 
   // 確定済みのリンクは再処理しない
-  if (anchor.dataset.buzzLink === shortUrl) return
+  if (anchor.dataset.buzzKey === key) return
 
-  const realUrl = await resolveShortUrl(shortUrl)
+  const realUrl = await adapter.getRealUrl(anchor)
   // 非同期の間に要素が別リンクへ変わっていないか確認する
-  if (anchor.href !== shortUrl) return
+  if (anchor.href !== key) return
 
   if (realUrl === null) {
-    // 展開不能(解決結果はキャッシュ済み)。確定扱いにして再試行しない
-    anchor.dataset.buzzLink = shortUrl
+    // 実URLを得られない(展開不能・不正URL)。確定扱いにして再試行しない
+    anchor.dataset.buzzKey = key
     return
   }
 
   const registered = await isRegistered(realUrl)
-  if (anchor.href !== shortUrl) return
+  if (anchor.href !== key) return
 
   // 不確定(通信失敗・未ログイン等)は確定保存せず、次回スキャンで再試行する
   if (registered === null) return
 
   // 確定結果が出てから記録する(以降このリンクでは再判定しない)
-  anchor.dataset.buzzLink = shortUrl
-  if (registered) addLinkBadge(anchor)
+  anchor.dataset.buzzKey = key
+  if (registered) addBadge(anchor)
 }
 
 function scan() {
-  document
-    .querySelectorAll('article[data-testid="tweet"] a[href^="https://t.co/"]')
-    .forEach((anchor) => {
-      processLink(anchor)
-    })
+  document.querySelectorAll(adapter.linkSelector).forEach((anchor) => {
+    processLink(anchor)
+  })
 }
 
-// Xはスクロールで内容が動的に増減するため監視する
-let debounceTimer = null
-const observer = new MutationObserver(() => {
-  clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(scan, 300)
-})
-observer.observe(document.body, { childList: true, subtree: true })
+if (adapter) {
+  // ページはスクロールで内容が動的に増減するため監視する
+  let debounceTimer = null
+  const observer = new MutationObserver(() => {
+    clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(scan, 300)
+  })
+  observer.observe(document.body, { childList: true, subtree: true })
 
-scan()
+  scan()
+}
