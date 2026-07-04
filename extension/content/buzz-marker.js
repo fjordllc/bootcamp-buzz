@@ -2,6 +2,7 @@
 // 対応サイト:
 //   - X(x.com / twitter.com): ツイート内の t.co 短縮リンクを background で実URLに展開して照合
 //   - はてなブックマーク(b.hatena.ne.jp): エントリーの記事リンク(実URL)を直接照合
+//   - Google検索(www.google.com / www.google.co.jp): 検索結果の記事リンクを照合
 
 const MAX_CONCURRENCY = 4
 
@@ -126,12 +127,28 @@ function hasBadge(target) {
   return !!next && next.classList.contains('buzz-registered-badge')
 }
 
-// 指定要素の直後に「✓ 登録済み」バッジを差し込む
-function addBadge(target) {
-  if (hasBadge(target)) return
+// コンテナ内に同一URLのバッジが既にあるか(1ツイート内の本文リンクとカード等の重複防止)。
+// ネストした引用ツイート等のバッジは、そのバッジ自身のコンテナが一致する場合のみ数える
+// (別ツイートの同一URLを誤って抑制しないため)。
+function hasBadgeForUrl(container, url) {
+  return [...container.querySelectorAll('.buzz-registered-badge')].some(
+    (badge) =>
+      badge.dataset.buzzUrl === url && adapter.getContainer(badge) === container
+  )
+}
+
+// リンクにバッジを付ける。同一コンテナ内に同一URLのバッジがあれば重複させない。
+function addBadgeFor(anchor, realUrl) {
+  const container = adapter.getContainer ? adapter.getContainer(anchor) : null
+  if (container && hasBadgeForUrl(container, realUrl)) return
+  const target = adapter.getBadgeTarget
+    ? adapter.getBadgeTarget(anchor)
+    : anchor
+  if (!target || hasBadge(target)) return
   const badge = document.createElement('span')
   badge.className = 'buzz-registered-badge'
   badge.textContent = '✓ 登録済み'
+  badge.dataset.buzzUrl = realUrl
   target.insertAdjacentElement('afterend', badge)
 }
 
@@ -163,10 +180,12 @@ function googleRealUrl(href) {
 // linkSelector: 判定対象リンクのCSSセレクタ
 // getRealUrl(anchor): そのリンクの照合用実URL(Promise, 解決不能はnull)
 // getBadgeTarget(anchor): バッジを差し込む要素(省略時はリンク自身)
+// getContainer(anchor): 重複防止の単位となる親要素(省略時は重複チェックなし)
 
 const X_ADAPTER = {
   linkSelector: 'article[data-testid="tweet"] a[href^="https://t.co/"]',
-  getRealUrl: (anchor) => resolveShortUrl(anchor.href)
+  getRealUrl: (anchor) => resolveShortUrl(anchor.href),
+  getContainer: (anchor) => anchor.closest('article[data-testid="tweet"]')
 }
 
 const HATENA_ADAPTER = {
@@ -218,12 +237,7 @@ async function processLink(anchor) {
 
   // 確定結果が出てから記録する(以降このリンクでは再判定しない)
   anchor.dataset.buzzKey = key
-  if (registered) {
-    const target = adapter.getBadgeTarget
-      ? adapter.getBadgeTarget(anchor)
-      : anchor
-    if (target) addBadge(target)
-  }
+  if (registered) addBadgeFor(anchor, realUrl)
 }
 
 function scan() {
