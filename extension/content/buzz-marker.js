@@ -127,10 +127,13 @@ function hasBadge(target) {
   return !!next && next.classList.contains('buzz-registered-badge')
 }
 
-// コンテナ内に同一URLのバッジが既にあるか(1ツイート内の本文リンクとカード等の重複防止)
+// コンテナ内に同一URLのバッジが既にあるか(1ツイート内の本文リンクとカード等の重複防止)。
+// ネストした引用ツイート等のバッジは、そのバッジ自身のコンテナが一致する場合のみ数える
+// (別ツイートの同一URLを誤って抑制しないため)。
 function hasBadgeForUrl(container, url) {
   return [...container.querySelectorAll('.buzz-registered-badge')].some(
-    (badge) => badge.dataset.buzzUrl === url
+    (badge) =>
+      badge.dataset.buzzUrl === url && adapter.getContainer(badge) === container
   )
 }
 
