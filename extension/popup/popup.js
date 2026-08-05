@@ -136,6 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   upsertForm.addEventListener('submit', async (e) => {
     e.preventDefault()
+    if (!upsertForm.reportValidity()) return
 
     if (!titleField.value.trim() && !publishedAtField.value.trim()) {
       showMessage('titleとpublished_atを入力してください', 'message-warning')

@@ -28,7 +28,7 @@
         <form id="upsert-form">
           <p>
             <label for="title">title:</label>
-            <input type="text" id="title" name="title" />
+            <input type="text" id="title" name="title" maxlength="120"/>
           </p>
           <p>
             <label for="url">url</label>
@@ -36,11 +36,11 @@
           </p>
           <p>
             <label for="published_at">published_at</label>
-            <input type="date" id="published_at" name="published_at" />
+            <input type="date" id="published_at" name="published_at" min="1000-01-01" max="9999-12-31" />
           </p>
           <p>
             <label for="memo">memo</label>
-            <textarea id="memo" name="memo"></textarea>
+            <textarea id="memo" name="memo" maxlength="500"></textarea>
           </p>
           <input type="submit" value="Submit" />
         </form>
